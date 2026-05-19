@@ -11,7 +11,7 @@
 <div id="app">
   <div class="top-bar" id="top-bar"></div>
   <div class="scroll-area"><div class="page-content">
-    <div class="page-hdr"><div class="page-title">Stock &amp; Tanker</div><div class="page-sub">Dip measurements and tanker history</div></div>
+    <div class="page-hdr"><div class="page-title">Stock &amp; Tanker</div><div class="page-sub">Dip measurements and tanker receipts</div></div>
     <div class="cards-grid">
       <div class="card cb"><div class="card-lbl">MS Petrol</div><div class="card-val" id="stk-ms">0 L</div><div class="card-sub" id="stk-ms-d">—</div></div>
       <div class="card ca"><div class="card-lbl">HSD Diesel</div><div class="card-val" id="stk-hsd">0 L</div><div class="card-sub" id="stk-hsd-d">—</div></div>
@@ -19,12 +19,16 @@
       <div class="card"><div class="card-lbl">Last Dip</div><div class="card-val" style="font-size:14px;padding-top:4px;" id="stk-last">—</div></div>
     </div>
     <div class="tabs">
-      <div class="tab active" onclick="stkTab('update',this)">Update Stock</div>
-      <div class="tab" onclick="stkTab('history',this)">History</div>
-      <div class="tab" onclick="stkTab('tanker',this)">Tankers</div>
+      <div class="tab active" onclick="stkTab('update',this)">Dip Stock</div>
+      <div class="tab" onclick="stkTab('tanker',this)">Tanker Receipt</div>
+      <div class="tab" onclick="stkTab('history',this)">Stock History</div>
+      <div class="tab" onclick="stkTab('tanklog',this)">Tanker Log</div>
     </div>
+
+    <!-- Update stock (today by default) -->
     <div id="stkt-update"><div class="sbox">
       <div class="sbox-title">Record Dip Measurement</div>
+      <p class="sbox-sub">Enter today's physical stock reading. Date defaults to today.</p>
       <div class="fg"><label>Date</label><input type="date" id="stk-date"></div>
       <div class="frow3">
         <div class="fg"><label style="color:var(--c-ms);">MS (L)</label><input type="number" inputmode="decimal" id="upd-ms" step="0.001"></div>
@@ -34,14 +38,32 @@
       <div class="fg"><label>Notes</label><input type="text" id="upd-notes" placeholder="Optional..."></div>
       <button class="btn btn-primary" onclick="saveStock()">Save Measurement</button>
     </div></div>
+
+    <!-- Tanker receipt (yesterday by default) -->
+    <div id="stkt-tanker" style="display:none;"><div class="sbox">
+      <div class="sbox-title"><div class="pill" style="background:var(--accent)"></div>Add Tanker Receipt</div>
+      <p class="sbox-sub">Date defaults to yesterday — tanker is typically recorded after the day's opening stock is set.</p>
+      <div class="fg"><label>Date</label><input type="date" id="tank-date"></div>
+      <div class="frow">
+        <div class="fg"><label>Fuel Type</label><select id="t-fuel"><option value="MS">MS Petrol</option><option value="HSD">HSD Diesel</option><option value="Power">Power</option></select></div>
+        <div class="fg"><label>Volume (L)</label><input type="number" id="t-vol" placeholder="0.000" step="0.001" inputmode="decimal"></div>
+      </div>
+      <div class="fg"><label>Tanker No.</label><input type="text" id="t-no" placeholder="MH-XX-XXXX"></div>
+      <button class="btn btn-primary" onclick="saveTanker()">Save Tanker Receipt</button>
+    </div></div>
+
+    <!-- Stock history -->
     <div id="stkt-history" style="display:none;"><div class="sbox"><div class="tbl-wrap"><table class="gt">
       <thead><tr><th>Date</th><th>MS (L)</th><th>HSD (L)</th><th>Power (L)</th><th>Notes</th></tr></thead>
       <tbody id="stk-hist"><tr><td colspan="5"><div class="empty"><p>No history</p></div></td></tr></tbody>
     </table></div></div></div>
-    <div id="stkt-tanker" style="display:none;"><div class="sbox"><div class="tbl-wrap"><table class="gt">
+
+    <!-- Tanker log -->
+    <div id="stkt-tanklog" style="display:none;"><div class="sbox"><div class="tbl-wrap"><table class="gt">
       <thead><tr><th>Date</th><th>Fuel</th><th>Volume (L)</th><th>Tanker No.</th></tr></thead>
       <tbody id="tank-hist"><tr><td colspan="4"><div class="empty"><p>No records</p></div></td></tr></tbody>
     </table></div></div></div>
+
   </div></div>
   <nav class="bottom-nav" id="bottom-nav"></nav>
   <div class="overlay" id="more-overlay" onclick="closeMore()"></div>
@@ -52,30 +74,87 @@
 <script src="js/app.js"></script>
 <script>
 function onSyncComplete(){ renderStock(); }
+
 function stkTab(tab,el){
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');
-  ['update','history','tanker'].forEach(t=>document.getElementById('stkt-'+t).style.display=t===tab?'block':'none');
+  ['update','tanker','history','tanklog'].forEach(t=>document.getElementById('stkt-'+t).style.display=t===tab?'block':'none');
 }
+
 function renderStock(){
-  const sdEl=document.getElementById('stk-date');if(sdEl&&!sdEl.value)sdEl.value=TODAY();
+  // Set default dates: stock = today, tanker = yesterday
+  const sdEl=document.getElementById('stk-date');
+  if(sdEl&&!sdEl.value) sdEl.value=TODAY();
+  const tdEl=document.getElementById('tank-date');
+  if(tdEl&&!tdEl.value) tdEl.value=YEST();
+
   const hist=C.stkHist(),latest=hist.length?hist[0]:null,s=C.settings(),entries=C.entries().slice(0,7);
-  const avg={ms:entries.length?entries.reduce((s,e)=>s+e.msV,0)/entries.length:0,hsd:entries.length?entries.reduce((s,e)=>s+e.hsdV,0)/entries.length:0,pow:entries.length?entries.reduce((s,e)=>s+e.powV,0)/entries.length:0};
-  ['ms','hsd','pow'].forEach(k=>{const vol=latest?latest[k]||0:0;document.getElementById('stk-'+k).textContent=fmtV(vol)+' L';document.getElementById('stk-'+k+'-d').textContent=avg[k]>0?'~'+(vol/avg[k]).toFixed(0)+' days':'—';});
+  const avg={
+    ms:entries.length?entries.reduce((s,e)=>s+e.msV,0)/entries.length:0,
+    hsd:entries.length?entries.reduce((s,e)=>s+e.hsdV,0)/entries.length:0,
+    pow:entries.length?entries.reduce((s,e)=>s+e.powV,0)/entries.length:0,
+  };
+  ['ms','hsd','pow'].forEach(k=>{
+    const vol=latest?latest[k]||0:0;
+    document.getElementById('stk-'+k).textContent=fmtV(vol)+' L';
+    document.getElementById('stk-'+k+'-d').textContent=avg[k]>0?'~'+(vol/avg[k]).toFixed(0)+' days':'—';
+  });
   document.getElementById('stk-last').textContent=latest?DS(latest.date):'No data';
+
+  // Stock history table
   const hb=document.getElementById('stk-hist');
-  if(!hist.length)hb.innerHTML='<tr><td colspan="5"><div class="empty"><p>No history</p></div></td></tr>';
-  else hb.innerHTML=hist.map(h=>`<tr><td style="white-space:nowrap;">${DS(h.date)}</td><td style="color:var(--c-ms);">${fmtV(h.ms||0)}</td><td style="color:var(--c-hsd);">${fmtV(h.hsd||0)}</td><td style="color:var(--c-pow);">${fmtV(h.pow||0)}</td><td style="color:var(--text3);font-size:11px;">${h.notes||'—'}</td></tr>`).join('');
+  if(!hist.length) hb.innerHTML='<tr><td colspan="5"><div class="empty"><p>No history</p></div></td></tr>';
+  else hb.innerHTML=hist.map(h=>`<tr>
+    <td style="white-space:nowrap;">${DS(h.date)}</td>
+    <td style="color:var(--c-ms);">${fmtV(h.ms||0)}</td>
+    <td style="color:var(--c-hsd);">${fmtV(h.hsd||0)}</td>
+    <td style="color:var(--c-pow);">${fmtV(h.pow||0)}</td>
+    <td style="color:var(--text3);font-size:11px;">${h.notes||'—'}</td>
+  </tr>`).join('');
+
+  // Tanker log table
   const allTank=C.tankers().sort((a,b)=>b.date.localeCompare(a.date));
   const tb=document.getElementById('tank-hist');
-  if(!allTank.length)tb.innerHTML='<tr><td colspan="4"><div class="empty"><p>No records</p></div></td></tr>';
-  else tb.innerHTML=allTank.map(t=>`<tr><td style="white-space:nowrap;">${DS(t.date)}</td><td><span class="badge b-${t.fuel.toLowerCase()}">${t.fuel}</span></td><td style="font-family:'DM Mono',monospace;">${fmtV(t.volume)} L</td><td>${t.tankerNo||'—'}</td></tr>`).join('');
+  if(!allTank.length) tb.innerHTML='<tr><td colspan="4"><div class="empty"><p>No records</p></div></td></tr>';
+  else tb.innerHTML=allTank.map(t=>`<tr>
+    <td style="white-space:nowrap;">${DS(t.date)}</td>
+    <td><span class="badge b-${t.fuel.toLowerCase()}">${t.fuel}</span></td>
+    <td style="font-family:'DM Mono',monospace;">${fmtV(t.volume)} L</td>
+    <td>${t.tankerNo||'—'}</td>
+  </tr>`).join('');
 }
+
 async function saveStock(){
-  const date=document.getElementById('stk-date').value||TODAY(),ms=parseFloat(document.getElementById('upd-ms').value),hsd=parseFloat(document.getElementById('upd-hsd').value),pow=parseFloat(document.getElementById('upd-pow').value),notes=document.getElementById('upd-notes').value.trim();
+  const date=document.getElementById('stk-date').value||TODAY();
+  const ms=parseFloat(document.getElementById('upd-ms').value);
+  const hsd=parseFloat(document.getElementById('upd-hsd').value);
+  const pow=parseFloat(document.getElementById('upd-pow').value);
+  const notes=document.getElementById('upd-notes').value.trim();
   if(isNaN(ms)&&isNaN(hsd)&&isNaN(pow)){toast('Enter at least one stock value');return;}
-  try{await sb('stock_history','POST',{meas_date:date,ms_vol:isNaN(ms)?null:ms,hsd_vol:isNaN(hsd)?null:hsd,pow_vol:isNaN(pow)?null:pow,notes},'?on_conflict=meas_date');toast('✅ Stock saved!');['upd-ms','upd-hsd','upd-pow','upd-notes'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});await syncNow();renderStock();}
-  catch(e){toast('⚠ Save failed');console.error(e);}
+  try{
+    await sb('stock_history','POST',{meas_date:date,ms_vol:isNaN(ms)?null:ms,hsd_vol:isNaN(hsd)?null:hsd,pow_vol:isNaN(pow)?null:pow,notes},'?on_conflict=meas_date');
+    toast('✅ Stock measurement saved!');
+    ['upd-ms','upd-hsd','upd-pow','upd-notes'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+    await syncNow();renderStock();
+  }catch(e){toast('⚠ Save failed');console.error(e);}
 }
-document.addEventListener('DOMContentLoaded',()=>{ buildShell('Stock & Tanker','more'); renderStock(); });
+
+async function saveTanker(){
+  const date=document.getElementById('tank-date').value||YEST();
+  const fuel=document.getElementById('t-fuel').value;
+  const vol=parseFloat(document.getElementById('t-vol').value)||0;
+  const tno=document.getElementById('t-no').value.trim();
+  if(!vol){toast('Enter volume received');return;}
+  try{
+    await sb('tankers','POST',{entry_date:date,fuel,volume:vol,tanker_no:tno});
+    toast('✅ Tanker receipt saved!');
+    document.getElementById('t-vol').value='';
+    document.getElementById('t-no').value='';
+    // Reset tanker date to yesterday for next entry
+    document.getElementById('tank-date').value=YEST();
+    await syncNow();renderStock();
+  }catch(e){toast('⚠ Save failed');console.error(e);}
+}
+
+document.addEventListener('DOMContentLoaded',()=>{ buildShell('Stock & Tanker','stock'); renderStock(); });
 </script>
 </body></html>

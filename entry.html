@@ -114,18 +114,6 @@
       </div>
 
       <div class="sbox">
-        <div class="sbox-title"><div class="pill" style="background:var(--accent)"></div>Tanker Receipt</div>
-        <p class="sbox-sub">Log tanker arrival. Add tanker costs in Expenses above.</p>
-        <div class="frow">
-          <div class="fg"><label>Fuel</label><select id="t-fuel"><option value="MS">MS Petrol</option><option value="HSD">HSD Diesel</option><option value="Power">Power</option></select></div>
-          <div class="fg"><label>Volume (L)</label><input type="number" id="t-vol" placeholder="0.000" step="0.001" inputmode="decimal"></div>
-        </div>
-        <div class="fg"><label>Tanker No.</label><input type="text" id="t-no" placeholder="MH-XX-XXXX"></div>
-        <button class="btn btn-ghost" onclick="addTanker()">+ Add Tanker</button>
-        <div style="margin-top:10px;" id="tank-list"></div>
-      </div>
-
-      <div class="sbox">
         <div class="sbox-title"><div class="pill" style="background:var(--blue)"></div>Reconciliation</div>
         <div id="diff-breakdown" style="font-family:'DM Mono',monospace;font-size:11.5px;color:var(--text2);line-height:2;margin-bottom:8px;"></div>
         <div id="diff-box" class="diff-box diff-balanced">
@@ -161,7 +149,7 @@
 </div>
 <script src="js/app.js"></script>
 <script>
-let tCr=[],tEx=[],tTk=[];
+let tCr=[],tEx=[];
 
 function onSyncComplete(){ initEntry(); }
 
@@ -184,7 +172,7 @@ function initEntry(){
   const dl=document.getElementById('cr-dl');dl.innerHTML='';
   [...new Set(C.credits().map(c=>c.customer))].forEach(c=>{const o=document.createElement('option');o.value=c;dl.appendChild(o);});
   refreshEmpDrop();
-  tCr=[];tEx=[];tTk=[];renderTCr();renderTEx();renderTTk();
+  tCr=[];tEx=[];renderTCr();renderTEx();
   onDateChange();
 }
 
@@ -301,18 +289,6 @@ function renderTEx(){
   document.getElementById('exp-tbar').style.display='flex';document.getElementById('exp-total').textContent=fmt(tot);calcDiff();
 }
 function rmEx(i){tEx.splice(i,1);renderTEx();}
-function addTanker(){
-  const fuel=document.getElementById('t-fuel').value,vol=parseFloat(document.getElementById('t-vol').value)||0,tno=document.getElementById('t-no').value.trim();
-  if(!vol){toast('Enter volume received');return;}
-  tTk.push({fuel,volume:vol,tankerNo:tno});renderTTk();
-  document.getElementById('t-vol').value='';document.getElementById('t-no').value='';
-}
-function renderTTk(){
-  const el=document.getElementById('tank-list');if(!tTk.length){el.innerHTML='';return;}
-  el.innerHTML=tTk.map((t,i)=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);"><div><span class="badge b-${t.fuel.toLowerCase()}">${t.fuel}</span> <span style="font-family:'DM Mono',monospace;font-size:12px;">${fmtV(t.volume)} L</span></div><div style="display:flex;align-items:center;gap:8px;"><span style="font-size:12px;color:var(--text3);">${t.tankerNo||'—'}</span><button class="btn btn-danger btn-sm" onclick="rmTk(${i})">✕</button></div></div>`).join('');
-}
-function rmTk(i){tTk.splice(i,1);renderTTk();}
-
 async function saveEntry(){
   const date=document.getElementById('e-date').value;if(!date){toast('Select a date');return;}
   const btn=document.getElementById('save-btn');btn.innerHTML='<span class="spinner"></span> Saving…';btn.disabled=true;
@@ -332,10 +308,8 @@ async function saveEntry(){
     const creditGiven=tCr.reduce((s,c)=>s+c.amount,0);
     await sb('daily_entries','POST',{entry_date:date,remarks:document.getElementById('e-remarks').value,nozzles,testing_ms:testMs,testing_hsd:testHsd,testing_pow:testPow,ms_vol:msV,hsd_vol:hsdV,pow_vol:powV,ms_amt:msA,hsd_amt:hsdA,pow_amt:powA,ms_rate:rates.ms,hsd_rate:rates.hsd,pow_rate:rates.pow,cash1,cash2,cash3,paytm,bank_transfer:bankTransfer,hp_pay:hpPay,ccms,credit_given:creditGiven,updated_at:new Date().toISOString()},'?on_conflict=entry_date');
     await sb('expenses','DELETE',null,`?entry_date=eq.${date}`);
-    await sb('tankers','DELETE',null,`?entry_date=eq.${date}`);
     await sb('credit_sales','DELETE',null,`?entry_date=eq.${date}`);
     if(tEx.length)await sb('expenses','POST',tEx.map(e=>({entry_date:date,category:e.category,description:e.description,amount:e.amount})));
-    if(tTk.length)await sb('tankers','POST',tTk.map(t=>({entry_date:date,fuel:t.fuel,volume:t.volume,tanker_no:t.tankerNo})));
     if(tCr.length)await sb('credit_sales','POST',tCr.map(c=>({entry_date:date,customer:c.customer,fuel:c.fuel,amount:c.amount})));
     await sb('employee_advances','DELETE',null,`?advance_date=eq.${date}`);
     const advRows=tEx.filter(e=>e.category==='Advance'||e.category==='Incentive').map(e=>({advance_date:date,employee_name:e.description.split(':')[0].trim(),amount:e.amount,notes:e.description}));
@@ -349,7 +323,7 @@ async function saveEntry(){
 function clearEntry(){
   ALL_NZ.forEach(id=>{const c=document.getElementById('c-'+id);if(c)c.value='';const v=document.getElementById('v-'+id);if(v){v.textContent='—';v.className='vm';}});
   ['test-ms','test-hsd','test-pow','e-remarks','cash1','cash2','cash3','paytm','bank-transfer','hp-pay','ccms'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
-  tCr=[];tEx=[];tTk=[];renderTCr();renderTEx();renderTTk();
+  tCr=[];tEx=[];renderTCr();renderTEx();
   ['ms','hsd','pow'].forEach(f=>{document.getElementById(f+'-vol').textContent='0.000 L';document.getElementById(f+'-amt').textContent='₹0';});
   document.getElementById('e-vol-grand').textContent='0.000 L';document.getElementById('e-amt-grand').textContent='₹0';
   document.getElementById('coll-total').textContent='₹0';document.getElementById('diff-val').textContent='₹0';
