@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="theme-color" content="#0b0d12">
+<title>FuelFlow — Settings</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app">
+  <div class="top-bar" id="top-bar"></div>
+  <div class="scroll-area"><div class="page-content">
+    <div class="page-hdr"><div class="page-title">Settings</div><div class="page-sub">Pump info, rates, employees and entry editor</div></div>
+
+    <div class="sbox">
+      <div class="sbox-title">Pump Info</div>
+      <div class="fg"><label>Pump Name</label><input type="text" id="s-name"></div>
+      <div class="frow"><div class="fg"><label>Owner</label><input type="text" id="s-owner"></div><div class="fg"><label>City</label><input type="text" id="s-city" placeholder="Nagpur"></div></div>
+      <div class="fg"><label>Phone</label><input type="text" id="s-phone"></div>
+    </div>
+    <div class="sbox">
+      <div class="sbox-title">Fuel Rates (₹/L)</div>
+      <div class="frow3">
+        <div class="fg"><label style="color:var(--c-ms);">MS</label><input type="number" inputmode="decimal" id="s-ms-rate" step="0.01"></div>
+        <div class="fg"><label style="color:var(--c-hsd);">HSD</label><input type="number" inputmode="decimal" id="s-hsd-rate" step="0.01"></div>
+        <div class="fg"><label style="color:var(--c-pow);">Power</label><input type="number" inputmode="decimal" id="s-pow-rate" step="0.01"></div>
+      </div>
+    </div>
+    <div class="sbox">
+      <div class="sbox-title">Tank Capacity (L)</div>
+      <div class="frow3">
+        <div class="fg"><label style="color:var(--c-ms);">MS</label><input type="number" inputmode="decimal" id="s-ms-cap"></div>
+        <div class="fg"><label style="color:var(--c-hsd);">HSD</label><input type="number" inputmode="decimal" id="s-hsd-cap"></div>
+        <div class="fg"><label style="color:var(--c-pow);">Power</label><input type="number" inputmode="decimal" id="s-pow-cap"></div>
+      </div>
+    </div>
+    <div class="sbox">
+      <div class="sbox-title">Employees</div>
+      <div class="frow"><div class="fg"><label>Name</label><input type="text" id="new-emp-name" placeholder="Full name"></div><div class="fg"><label>Role</label><input type="text" id="new-emp-role" placeholder="Optional"></div></div>
+      <button class="btn btn-ghost" onclick="addEmployee()" style="margin-bottom:10px;">+ Add Employee</button>
+      <div id="emp-settings-list"></div>
+    </div>
+
+    <!-- Edit Previous Entry -->
+    <div class="sbox">
+      <div class="sbox-title"><div class="pill" style="background:var(--accent)"></div>Edit Previous Entry</div>
+      <p class="sbox-sub">Load any saved day to edit meter readings, testing, cash, expenses and advances.</p>
+      <div class="frow" style="align-items:flex-end;gap:10px;">
+        <div class="fg" style="flex:1;"><label>Select Date</label><input type="date" id="edit-date"></div>
+        <button class="btn btn-ghost" style="width:auto;padding:11px 16px;flex-shrink:0;" onclick="loadEntryForEdit()">Load</button>
+      </div>
+      <div id="edit-status" style="margin-top:8px;"></div>
+    </div>
+
+    <div id="edit-form" style="display:none;">
+      <div class="sbox">
+        <div class="sbox-title"><div class="pill" style="background:var(--c-ms)"></div>Nozzle Closing Readings</div>
+        <p class="sbox-sub">Opening values are fixed (carried from previous day).</p>
+        <div style="font-size:11.5px;font-weight:600;color:var(--c-ms);margin-bottom:8px;">MS Petrol</div>
+        <div class="frow"><div class="fg"><label>MS1 Close</label><input type="number" inputmode="decimal" id="ed-MS1" step="0.001"></div><div class="fg"><label>MS2 Close</label><input type="number" inputmode="decimal" id="ed-MS2" step="0.001"></div></div>
+        <div class="frow"><div class="fg"><label>MS3 Close</label><input type="number" inputmode="decimal" id="ed-MS3" step="0.001"></div><div class="fg"><label>MS4 Close</label><input type="number" inputmode="decimal" id="ed-MS4" step="0.001"></div></div>
+        <div style="font-size:11.5px;font-weight:600;color:var(--c-hsd);margin:12px 0 8px;">HSD Diesel</div>
+        <div class="frow"><div class="fg"><label>HSD1 Close</label><input type="number" inputmode="decimal" id="ed-HSD1" step="0.001"></div><div class="fg"><label>HSD2 Close</label><input type="number" inputmode="decimal" id="ed-HSD2" step="0.001"></div></div>
+        <div style="font-size:11.5px;font-weight:600;color:var(--c-pow);margin:12px 0 8px;">Power Premium</div>
+        <div class="frow"><div class="fg"><label>POW1 Close</label><input type="number" inputmode="decimal" id="ed-POW1" step="0.001"></div><div class="fg"><label>POW2 Close</label><input type="number" inputmode="decimal" id="ed-POW2" step="0.001"></div></div>
+      </div>
+      <div class="sbox">
+        <div class="sbox-title"><div class="pill" style="background:var(--blue)"></div>Testing Deductions</div>
+        <div class="frow3"><div class="fg"><label style="color:var(--c-ms);">MS (L)</label><input type="number" inputmode="decimal" id="ed-test-ms" step="0.001"></div><div class="fg"><label style="color:var(--c-hsd);">HSD (L)</label><input type="number" inputmode="decimal" id="ed-test-hsd" step="0.001"></div><div class="fg"><label style="color:var(--c-pow);">Power (L)</label><input type="number" inputmode="decimal" id="ed-test-pow" step="0.001"></div></div>
+      </div>
+      <div class="sbox">
+        <div class="sbox-title"><div class="pill" style="background:var(--green)"></div>Cash &amp; Collection</div>
+        <div class="frow"><div class="fg"><label>Cash Part 1 (₹)</label><input type="number" inputmode="decimal" id="ed-cash1" step="0.01"></div><div class="fg"><label>Cash Part 2 (₹)</label><input type="number" inputmode="decimal" id="ed-cash2" step="0.01"></div></div>
+        <div class="frow"><div class="fg"><label>Cash Part 3 (₹)</label><input type="number" inputmode="decimal" id="ed-cash3" step="0.01"></div><div class="fg"><label>Paytm (₹)</label><input type="number" inputmode="decimal" id="ed-paytm" step="0.01"></div></div>
+        <div class="frow"><div class="fg"><label>Bank Transfer (₹)</label><input type="number" inputmode="decimal" id="ed-bank-transfer" step="0.01"></div><div class="fg"><label>HP Pay (₹)</label><input type="number" inputmode="decimal" id="ed-hp-pay" step="0.01"></div></div>
+        <div class="fg"><label>CCMS (₹)</label><input type="number" inputmode="decimal" id="ed-ccms" step="0.01"></div>
+      </div>
+      <div class="sbox">
+        <div class="sbox-title"><div class="pill" style="background:var(--red)"></div>Expenses</div>
+        <p class="sbox-sub">Edit, delete or add expenses for this day.</p>
+        <div id="ed-exp-list"></div>
+        <div class="divider"></div>
+        <div style="font-size:11.5px;font-weight:600;color:var(--text2);margin-bottom:8px;">Add New Expense</div>
+        <div class="fg"><label>Category</label>
+          <select id="ed-exp-cat" onchange="onEditExpCat()">
+            <option value="">Select...</option>
+            <optgroup label="— Tanker —"><option>Tanker Diesel</option><option>Tanker Bhatta</option><option>Tanker Expenses</option></optgroup>
+            <optgroup label="— Staff —"><option>Staff Salary</option><option>Advance</option><option>Incentive</option><option>Nashta</option><option>Tiffin</option></optgroup>
+            <optgroup label="— Operations —"><option>Density</option><option>Maintenance</option><option>Cleaning</option><option>Miscellaneous</option><option>Other</option></optgroup>
+          </select>
+        </div>
+        <div class="fg" id="ed-exp-emp-grp" style="display:none;"><label>Employee</label><select id="ed-exp-emp"><option value="">Select employee...</option></select></div>
+        <div class="fg"><label>Description</label><input type="text" id="ed-exp-desc" placeholder="Details..."></div>
+        <div class="fg"><label>Amount (₹)</label><input type="number" inputmode="decimal" id="ed-exp-amt" step="0.01"></div>
+        <button class="btn btn-ghost" onclick="editAddExpense()">+ Add Expense</button>
+      </div>
+      <div class="sbox"><div class="sbox-title"><div class="pill" style="background:var(--text3)"></div>Remarks</div><div class="fg"><label>Day Remarks</label><input type="text" id="ed-remarks"></div></div>
+      <div class="btn-row">
+        <button class="btn btn-ghost" onclick="cancelEdit()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveEditedEntry()" id="edit-save-btn">💾 Save Changes</button>
+      </div>
+      <div style="height:8px;"></div>
+    </div>
+
+    <button class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
+    <div style="height:8px;"></div>
+    <button class="btn btn-danger" onclick="clearAll()">🗑️ Clear Local Cache</button>
+    <div id="s-saved" style="display:none;" class="alert-ok">✓ Settings saved!</div>
+    <div style="height:20px;"></div>
+  </div></div>
+  <nav class="bottom-nav" id="bottom-nav"></nav>
+  <div class="overlay" id="more-overlay" onclick="closeMore()"></div>
+  <div class="more-menu" id="more-menu"></div>
+  <div id="toast"></div>
+  <!-- No PIN modal on settings page — it's already the destination after PIN -->
+</div>
+<script src="js/app.js"></script>
+<script>
+function onSyncComplete(){ loadSettings(); }
+
+function loadSettings(){
+  const s=C.settings();
+  document.getElementById('s-name').value=s.pumpName||'';
+  document.getElementById('s-owner').value=s.owner||'';
+  document.getElementById('s-city').value=s.city||'Nagpur';
+  document.getElementById('s-phone').value=s.phone||'';
+  document.getElementById('s-ms-rate').value=s.msRate||'';
+  document.getElementById('s-hsd-rate').value=s.hsdRate||'';
+  document.getElementById('s-pow-rate').value=s.powRate||'';
+  document.getElementById('s-ms-cap').value=s.msCap||'';
+  document.getElementById('s-hsd-cap').value=s.hsdCap||'';
+  document.getElementById('s-pow-cap').value=s.powCap||'';
+  renderEmpSettingsList();
+}
+async function saveSettings(){
+  const s={pumpName:document.getElementById('s-name').value||'Mahalaxmi Petrol Pump',owner:document.getElementById('s-owner').value,city:document.getElementById('s-city').value||'Nagpur',phone:document.getElementById('s-phone').value,msRate:parseFloat(document.getElementById('s-ms-rate').value)||0,hsdRate:parseFloat(document.getElementById('s-hsd-rate').value)||0,powRate:parseFloat(document.getElementById('s-pow-rate').value)||0,msCap:parseFloat(document.getElementById('s-ms-cap').value)||20000,hsdCap:parseFloat(document.getElementById('s-hsd-cap').value)||20000,powCap:parseFloat(document.getElementById('s-pow-cap').value)||5000,employees:(C.settings().employees||[]),settingsId:(C.settings().settingsId||null)};
+  C.set('settings',s);
+  try{const row={pump_name:s.pumpName,owner:s.owner,city:s.city,phone:s.phone,ms_rate:s.msRate,hsd_rate:s.hsdRate,pow_rate:s.powRate,ms_cap:s.msCap,hsd_cap:s.hsdCap,pow_cap:s.powCap,updated_at:new Date().toISOString()};if(s.settingsId)await sb('settings','PATCH',row,`?id=eq.${s.settingsId}`);else await sb('settings','POST',row);toast('✅ Settings saved!');}
+  catch(e){toast('⚠ Saved locally, sync failed');console.error(e);}
+  const el=document.getElementById('s-saved');el.style.display='block';setTimeout(()=>el.style.display='none',2500);
+}
+async function addEmployee(){
+  const name=document.getElementById('new-emp-name').value.trim(),role=document.getElementById('new-emp-role').value.trim();
+  if(!name){toast('Enter employee name');return;}
+  const s=C.settings();if((s.employees||[]).find(e=>e.name===name)){toast('Employee already exists');return;}
+  try{await sb('employees','POST',{name,role});s.employees=s.employees||[];s.employees.push({name,role});C.set('settings',s);document.getElementById('new-emp-name').value='';document.getElementById('new-emp-role').value='';renderEmpSettingsList();toast('✅ Employee added!');}
+  catch(e){toast('⚠ Add failed');console.error(e);}
+}
+async function removeEmployee(name){
+  if(!confirm('Remove '+name+'?'))return;
+  try{await sb('employees','DELETE',null,`?name=eq.${encodeURIComponent(name)}`);const s=C.settings();s.employees=(s.employees||[]).filter(e=>e.name!==name);C.set('settings',s);renderEmpSettingsList();toast('Employee removed');}
+  catch(e){toast('⚠ Remove failed');console.error(e);}
+}
+function renderEmpSettingsList(){
+  const s=C.settings(),emps=s.employees||[],el=document.getElementById('emp-settings-list');
+  if(!emps.length){el.innerHTML='<div class="empty" style="padding:14px;"><p>No employees added.</p></div>';return;}
+  el.innerHTML=emps.map(e=>`<div class="emp-row"><div><div class="emp-row-name">${e.name}</div><div style="font-size:11px;color:var(--text3);">${e.role||'Staff'}</div></div><button class="btn btn-danger btn-sm" onclick="removeEmployee('${e.name}')">Remove</button></div>`).join('');
+}
+function clearAll(){
+  if(confirm('Delete all local cached data?')){Object.keys(localStorage).filter(k=>k.startsWith('ff4_')).forEach(k=>localStorage.removeItem(k));toast('Local data cleared. Reloading...');setTimeout(()=>window.location.href='index.html',1200);}
+}
+
+// ── EDIT ENTRY ──────────────────────────────────────────────────
+let editDate=null,editExpenses=[];
+
+function loadEntryForEdit(){
+  const dateStr=document.getElementById('edit-date').value;
+  if(!dateStr){toast('Select a date first');return;}
+  const entry=C.entries().find(e=>e.date===dateStr);
+  const statusEl=document.getElementById('edit-status'),formEl=document.getElementById('edit-form');
+  if(!entry){statusEl.innerHTML=`<span class="pill-warn">⚠ No entry found for ${DS(dateStr)}.</span>`;formEl.style.display='none';return;}
+  editDate=dateStr;editExpenses=[...(entry.expenses||[])];
+  statusEl.innerHTML=`<span class="pill-ok">✓ Loaded entry for ${DS(dateStr)}</span>`;
+  formEl.style.display='block';setTimeout(()=>formEl.scrollIntoView({behavior:'smooth',block:'start'}),100);
+  const nz=entry.nozzles||{};
+  ['MS1','MS2','MS3','MS4','HSD1','HSD2','POW1','POW2'].forEach(id=>{const el=document.getElementById('ed-'+id);if(el)el.value=nz[id]?.close??'';});
+  document.getElementById('ed-test-ms').value=entry.testingMs||'';
+  document.getElementById('ed-test-hsd').value=entry.testingHsd||'';
+  document.getElementById('ed-test-pow').value=entry.testingPow||'';
+  document.getElementById('ed-cash1').value=entry.cash1||'';document.getElementById('ed-cash2').value=entry.cash2||'';
+  document.getElementById('ed-cash3').value=entry.cash3||'';document.getElementById('ed-paytm').value=entry.paytm||'';
+  document.getElementById('ed-bank-transfer').value=entry.bankTransfer||'';document.getElementById('ed-hp-pay').value=entry.hpPay||'';
+  document.getElementById('ed-ccms').value=entry.ccms||'';document.getElementById('ed-remarks').value=entry.remarks||'';
+  const empSel=document.getElementById('ed-exp-emp');const s=C.settings();
+  empSel.innerHTML='<option value="">Select employee...</option>'+(s.employees||[]).map(e=>`<option value="${e.name}">${e.name}${e.role?' ('+e.role+')':''}</option>`).join('');
+  renderEditExpenses();
+}
+function renderEditExpenses(){
+  const el=document.getElementById('ed-exp-list');
+  if(!editExpenses.length){el.innerHTML='<div class="empty" style="padding:14px;"><p>No expenses for this day.</p></div>';return;}
+  el.innerHTML=editExpenses.map((e,i)=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border);"><div><div style="font-size:12px;color:var(--text2);">${e.category}</div><div style="font-size:12px;font-weight:600;">${e.description||'—'}</div></div><div style="display:flex;align-items:center;gap:8px;"><span style="font-family:'DM Mono',monospace;color:var(--red);font-size:13px;">${fmt(e.amount)}</span><button class="btn btn-danger btn-sm" onclick="editRemoveExpense(${i})">✕</button></div></div>`).join('');
+}
+function editRemoveExpense(i){editExpenses.splice(i,1);renderEditExpenses();}
+function onEditExpCat(){const v=document.getElementById('ed-exp-cat').value,g=document.getElementById('ed-exp-emp-grp');if(g)g.style.display=(v==='Advance'||v==='Incentive')?'block':'none';}
+function editAddExpense(){
+  const cat=document.getElementById('ed-exp-cat').value;let desc=document.getElementById('ed-exp-desc').value.trim();const amt=parseFloat(document.getElementById('ed-exp-amt').value)||0;
+  if(!cat||!amt){toast('Select category and enter amount');return;}
+  if(cat==='Advance'||cat==='Incentive'){const emp=document.getElementById('ed-exp-emp').value;if(!emp){toast('Select employee');return;}desc=emp+(desc?': '+desc:'');}
+  editExpenses.push({category:cat,description:desc,amount:amt});renderEditExpenses();
+  document.getElementById('ed-exp-cat').value='';document.getElementById('ed-exp-desc').value='';document.getElementById('ed-exp-amt').value='';
+  document.getElementById('ed-exp-emp-grp').style.display='none';
+}
+function cancelEdit(){editDate=null;editExpenses=[];document.getElementById('edit-form').style.display='none';document.getElementById('edit-status').innerHTML='';document.getElementById('edit-date').value='';}
+
+async function saveEditedEntry(){
+  if(!editDate){toast('No entry loaded');return;}
+  const btn=document.getElementById('edit-save-btn');btn.innerHTML='<span class="spinner"></span> Saving…';btn.disabled=true;
+  try{
+    const existingEntry=C.entries().find(e=>e.date===editDate);if(!existingEntry){toast('Entry not found');return;}
+    const openings=getOpenings(editDate),nozzles={};let msV=0,hsdV=0,powV=0,msA=0,hsdA=0,powA=0;
+    const rates={ms:existingEntry.msRate||0,hsd:existingEntry.hsdRate||0,pow:existingEntry.powRate||0};
+    const testMs=parseFloat(document.getElementById('ed-test-ms').value)||0,testHsd=parseFloat(document.getElementById('ed-test-hsd').value)||0,testPow=parseFloat(document.getElementById('ed-test-pow').value)||0;
+    const fuelMap={MS1:'ms',MS2:'ms',MS3:'ms',MS4:'ms',HSD1:'hsd',HSD2:'hsd',POW1:'pow',POW2:'pow'};
+    ['MS1','MS2','MS3','MS4','HSD1','HSD2','POW1','POW2'].forEach(id=>{const fuel=fuelMap[id],open=openings.readings[id]||0,close=parseFloat(document.getElementById('ed-'+id)?.value)||existingEntry.nozzles[id]?.close||0,vol=(close>0&&close>=open)?Math.max(0,close-open):0,rate=rates[fuel];nozzles[id]={open,close,volume:vol,rate,amount:vol*rate};});
+    ['MS1','MS2','MS3','MS4'].forEach(id=>{msV+=nozzles[id].volume;});['HSD1','HSD2'].forEach(id=>{hsdV+=nozzles[id].volume;});['POW1','POW2'].forEach(id=>{powV+=nozzles[id].volume;});
+    msV=Math.max(0,msV-testMs);msA=msV*rates.ms;hsdV=Math.max(0,hsdV-testHsd);hsdA=hsdV*rates.hsd;powV=Math.max(0,powV-testPow);powA=powV*rates.pow;
+    const cash1=parseFloat(document.getElementById('ed-cash1').value)||0,cash2=parseFloat(document.getElementById('ed-cash2').value)||0,cash3=parseFloat(document.getElementById('ed-cash3').value)||0;
+    const paytm=parseFloat(document.getElementById('ed-paytm').value)||0,bankTransfer=parseFloat(document.getElementById('ed-bank-transfer').value)||0;
+    const hpPay=parseFloat(document.getElementById('ed-hp-pay').value)||0,ccms=parseFloat(document.getElementById('ed-ccms').value)||0;
+    const remarks=document.getElementById('ed-remarks').value,creditGiven=existingEntry.creditGiven||0;
+    await sb('daily_entries','PATCH',{nozzles,testing_ms:testMs,testing_hsd:testHsd,testing_pow:testPow,ms_vol:msV,hsd_vol:hsdV,pow_vol:powV,ms_amt:msA,hsd_amt:hsdA,pow_amt:powA,cash1,cash2,cash3,paytm,bank_transfer:bankTransfer,hp_pay:hpPay,ccms,credit_given:creditGiven,remarks,updated_at:new Date().toISOString()},`?entry_date=eq.${editDate}`);
+    await sb('expenses','DELETE',null,`?entry_date=eq.${editDate}`);
+    if(editExpenses.length)await sb('expenses','POST',editExpenses.map(e=>({entry_date:editDate,category:e.category,description:e.description,amount:e.amount})));
+    await sb('employee_advances','DELETE',null,`?advance_date=eq.${editDate}`);
+    const advRows=editExpenses.filter(e=>e.category==='Advance'||e.category==='Incentive').map(e=>({advance_date:editDate,employee_name:e.description.split(':')[0].trim(),amount:e.amount,notes:e.description}));
+    if(advRows.length)await sb('employee_advances','POST',advRows);
+    toast('✅ Entry updated!');cancelEdit();
+    syncNow().catch(e=>console.error('Background sync:',e));
+  }catch(err){console.error(err);toast('⚠ Save failed: '+err.message);}
+  finally{btn.innerHTML='💾 Save Changes';btn.disabled=false;}
+}
+
+document.addEventListener('DOMContentLoaded',()=>{ buildShell('Settings','more'); loadSettings(); });
+</script>
+</body></html>

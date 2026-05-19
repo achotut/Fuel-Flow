@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="theme-color" content="#0b0d12">
+<title>FuelFlow — Daily Entry</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app">
+  <div class="top-bar" id="top-bar"></div>
+  <div class="scroll-area">
+    <div class="page-content">
+      <div class="page-hdr"><div class="page-title">Daily Entry</div><div class="page-sub">Openings auto-fill from previous day</div></div>
+
+      <div class="sbox">
+        <div class="fg"><label>Entry Date</label><input type="date" id="e-date" onchange="onDateChange()"></div>
+        <div class="fg"><label>Remarks</label><input type="text" id="e-remarks" placeholder="Any notes..."></div>
+        <div id="e-status" style="margin-top:4px;"></div>
+      </div>
+
+      <input type="hidden" id="r-ms"><input type="hidden" id="r-hsd"><input type="hidden" id="r-pow">
+
+      <div class="sbox">
+        <div class="sbox-title"><div class="pill" style="background:var(--c-ms)"></div>Nozzle Readings</div>
+        <p class="sbox-sub">Opening auto-fills from yesterday's close. Enter today's closing only.</p>
+        <div class="fuel-hdr">
+          <div class="fuel-tag"><div class="fuel-dot" style="background:var(--c-ms)"></div><span style="color:var(--c-ms)">MS Petrol · 4</span></div>
+          <div class="fuel-meta">Net: <b id="ms-vol">0.000 L</b> · <b id="ms-amt">₹0</b></div>
+        </div>
+        <div class="nz-wrap"><table class="nz-tbl">
+          <thead><tr><th>Nozzle</th><th>Opening</th><th>Closing ★</th><th>Gross Vol</th></tr></thead>
+          <tbody id="rows-ms"></tbody>
+        </table></div>
+        <div class="divider"></div>
+        <div class="fuel-hdr">
+          <div class="fuel-tag"><div class="fuel-dot" style="background:var(--c-hsd)"></div><span style="color:var(--c-hsd)">HSD Diesel · 2</span></div>
+          <div class="fuel-meta">Net: <b id="hsd-vol">0.000 L</b> · <b id="hsd-amt">₹0</b></div>
+        </div>
+        <div class="nz-wrap"><table class="nz-tbl">
+          <thead><tr><th>Nozzle</th><th>Opening</th><th>Closing ★</th><th>Gross Vol</th></tr></thead>
+          <tbody id="rows-hsd"></tbody>
+        </table></div>
+        <div class="divider"></div>
+        <div class="fuel-hdr">
+          <div class="fuel-tag"><div class="fuel-dot" style="background:var(--c-pow)"></div><span style="color:var(--c-pow)">Power · 2</span></div>
+          <div class="fuel-meta">Net: <b id="pow-vol">0.000 L</b> · <b id="pow-amt">₹0</b></div>
+        </div>
+        <div class="nz-wrap"><table class="nz-tbl">
+          <thead><tr><th>Nozzle</th><th>Opening</th><th>Closing ★</th><th>Gross Vol</th></tr></thead>
+          <tbody id="rows-pow"></tbody>
+        </table></div>
+        <div class="test-box">
+          <div class="test-box-title">🧪 Testing Deductions (cumulative)</div>
+          <div class="frow3">
+            <div class="fg"><label style="color:var(--c-ms);">MS (L)</label><input type="number" id="test-ms" placeholder="0.000" step="0.001" inputmode="decimal" oninput="recalcAll()"></div>
+            <div class="fg"><label style="color:var(--c-hsd);">HSD (L)</label><input type="number" id="test-hsd" placeholder="0.000" step="0.001" inputmode="decimal" oninput="recalcAll()"></div>
+            <div class="fg"><label style="color:var(--c-pow);">Power (L)</label><input type="number" id="test-pow" placeholder="0.000" step="0.001" inputmode="decimal" oninput="recalcAll()"></div>
+          </div>
+        </div>
+        <div class="tbar" style="margin-top:10px;">
+          <div><div class="tbar-lbl">Grand Total (after testing)</div><div class="tbar-sub" id="e-vol-grand">0.000 L</div></div>
+          <div class="tbar-val" id="e-amt-grand">₹0</div>
+        </div>
+      </div>
+
+      <div class="sbox">
+        <div class="sbox-title"><div class="pill" style="background:var(--red)"></div>Credit Sales</div>
+        <div class="fg"><label>Customer Name</label><input type="text" id="cr-cust" placeholder="Party / company" list="cr-dl"><datalist id="cr-dl"></datalist></div>
+        <div class="frow">
+          <div class="fg"><label>Fuel</label><select id="cr-fuel"><option value="MS">MS Petrol</option><option value="HSD">HSD Diesel</option><option value="Power">Power</option></select></div>
+          <div class="fg"><label>Amount (₹)</label><input type="number" id="cr-amt" placeholder="0.00" inputmode="decimal"></div>
+        </div>
+        <button class="btn btn-ghost" onclick="addCredit()">+ Add Credit Entry</button>
+        <div style="margin-top:10px;" id="cr-list"></div>
+        <div id="cr-tbar" style="display:none;" class="tbar"><div class="tbar-lbl">Total Credit Today</div><div class="tbar-val" style="color:var(--red);" id="cr-total">₹0</div></div>
+      </div>
+
+      <div class="sbox">
+        <div class="sbox-title"><div class="pill" style="background:var(--green)"></div>Cash &amp; Collection</div>
+        <div class="frow">
+          <div class="fg"><label>Cash Part 1 (₹)</label><input type="number" id="cash1" placeholder="0.00" inputmode="decimal" oninput="calcDiff()"></div>
+          <div class="fg"><label>Cash Part 2 (₹)</label><input type="number" id="cash2" placeholder="0.00" inputmode="decimal" oninput="calcDiff()"></div>
+        </div>
+        <div class="frow">
+          <div class="fg"><label>Cash Part 3 (₹)</label><input type="number" id="cash3" placeholder="0.00" inputmode="decimal" oninput="calcDiff()"></div>
+          <div class="fg"><label>Paytm (₹)</label><input type="number" id="paytm" placeholder="0.00" inputmode="decimal" oninput="calcDiff()"></div>
+        </div>
+        <div class="frow">
+          <div class="fg"><label>Online Bank Transfer (₹)</label><input type="number" id="bank-transfer" placeholder="0.00" inputmode="decimal" oninput="calcDiff()"></div>
+          <div class="fg"><label>HP Pay (₹)</label><input type="number" id="hp-pay" placeholder="0.00" inputmode="decimal" oninput="calcDiff()"></div>
+        </div>
+        <div class="fg"><label>CCMS (₹)</label><input type="number" id="ccms" placeholder="0.00" inputmode="decimal" oninput="calcDiff()"></div>
+        <div class="tbar"><div class="tbar-lbl">Total Collected</div><div class="tbar-val" style="color:var(--green);" id="coll-total">₹0</div></div>
+      </div>
+
+      <div class="sbox">
+        <div class="sbox-title"><div class="pill" style="background:var(--red)"></div>Daily Expenses</div>
+        <div class="fg"><label>Category</label>
+          <select id="exp-cat" onchange="onExpCat()">
+            <option value="">Select...</option>
+            <optgroup label="— Tanker —"><option>Tanker Diesel</option><option>Tanker Bhatta</option><option>Tanker Expenses</option></optgroup>
+            <optgroup label="— Staff —"><option>Staff Salary</option><option>Advance</option><option>Incentive</option><option>Nashta</option><option>Tiffin</option></optgroup>
+            <optgroup label="— Operations —"><option>Density</option><option>Maintenance</option><option>Cleaning</option><option>Miscellaneous</option><option>Other</option></optgroup>
+          </select>
+        </div>
+        <div class="fg" id="exp-emp-grp" style="display:none;"><label>Employee</label><select id="exp-emp"><option value="">Select employee...</option></select></div>
+        <div class="fg"><label>Description</label><input type="text" id="exp-desc" placeholder="Details..."></div>
+        <div class="fg"><label>Amount (₹)</label><input type="number" id="exp-amt" placeholder="0.00" inputmode="decimal"></div>
+        <button class="btn btn-ghost" onclick="addExpense()">+ Add Expense</button>
+        <div style="margin-top:10px;" id="exp-list"></div>
+        <div id="exp-tbar" style="display:none;" class="tbar"><div class="tbar-lbl">Total Expenses</div><div class="tbar-val" style="color:var(--red);" id="exp-total">₹0</div></div>
+      </div>
+
+      <div class="sbox">
+        <div class="sbox-title"><div class="pill" style="background:var(--blue)"></div>Reconciliation</div>
+        <div id="diff-breakdown" style="font-family:'DM Mono',monospace;font-size:11.5px;color:var(--text2);line-height:2;margin-bottom:8px;"></div>
+        <div id="diff-box" class="diff-box diff-balanced">
+          <div><div style="font-size:12px;color:var(--text2);">Difference</div><div style="font-size:10.5px;color:var(--text3);margin-top:2px;" id="diff-status">Revenue − Credit − Collection − Expenses</div></div>
+          <div class="diff-val" id="diff-val" style="color:var(--green);">₹0</div>
+        </div>
+      </div>
+
+      <div class="btn-row" style="padding-bottom:8px;">
+        <button class="btn btn-ghost btn-sm" onclick="clearEntry()" style="width:auto;padding:12px 20px;">Clear</button>
+        <button class="btn btn-primary" onclick="saveEntry()" id="save-btn">💾 Save Entry</button>
+      </div>
+    </div>
+  </div>
+  <nav class="bottom-nav" id="bottom-nav"></nav>
+  <div class="overlay" id="more-overlay" onclick="closeMore()"></div>
+  <div class="more-menu" id="more-menu"></div>
+  <div id="toast"></div>
+  <!-- PIN Modal (same on every page) -->
+  <div id="pin-overlay"><div style="background:var(--surf);border:1px solid var(--border);border-radius:var(--r);padding:28px 24px;width:300px;max-width:90vw;text-align:center;">
+    <div style="font-size:28px;margin-bottom:8px;">🔒</div>
+    <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:18px;margin-bottom:4px;">Settings Access</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:20px;">Enter 4-digit PIN</div>
+    <div id="pin-dots" style="display:flex;justify-content:center;gap:12px;margin-bottom:20px;"><div class="pin-dot" id="pd0"></div><div class="pin-dot" id="pd1"></div><div class="pin-dot" id="pd2"></div><div class="pin-dot" id="pd3"></div></div>
+    <div id="pin-error" style="font-size:12px;color:var(--red);height:16px;margin-bottom:10px;"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+      <button class="pin-key" onclick="pinKey('1')">1</button><button class="pin-key" onclick="pinKey('2')">2</button><button class="pin-key" onclick="pinKey('3')">3</button>
+      <button class="pin-key" onclick="pinKey('4')">4</button><button class="pin-key" onclick="pinKey('5')">5</button><button class="pin-key" onclick="pinKey('6')">6</button>
+      <button class="pin-key" onclick="pinKey('7')">7</button><button class="pin-key" onclick="pinKey('8')">8</button><button class="pin-key" onclick="pinKey('9')">9</button>
+      <button class="pin-key pin-key-cancel" onclick="closePinModal()">✕</button><button class="pin-key" onclick="pinKey('0')">0</button><button class="pin-key pin-key-del" onclick="pinDel()">⌫</button>
+    </div>
+  </div></div>
+</div>
+<script src="js/app.js"></script>
+<script>
+let tCr=[],tEx=[];
+
+function onSyncComplete(){ initEntry(); }
+
+function buildRows(fuel){
+  const tbody=document.getElementById('rows-'+fuel);if(!tbody)return;
+  tbody.innerHTML=NOZZLES[fuel].map(id=>`<tr><td class="nz-lbl" style="color:var(--c-${fuel});">${id}</td><td class="nz-open"><span id="o-${id}" class="vm">—</span></td><td><input type="number" id="c-${id}" placeholder="closing" step="0.001" inputmode="decimal" oninput="calcNz('${id}','${fuel}')"></td><td class="nz-res"><span id="v-${id}" class="vm">—</span></td></tr>`).join('');
+}
+
+function initEntry(){
+  ['ms','hsd','pow'].forEach(buildRows);
+  const s=C.settings();
+  document.getElementById('r-ms').value=s.msRate||0;
+  document.getElementById('r-hsd').value=s.hsdRate||0;
+  document.getElementById('r-pow').value=s.powRate||0;
+  const entries=C.entries();
+  let defaultDate=TODAY();
+  if(entries.length>0){const nextStr=ADDDAY(entries[0].date);defaultDate=nextStr<=TODAY()?nextStr:TODAY();}
+  document.getElementById('e-date').value='';
+  document.getElementById('e-date').value=defaultDate;
+  const dl=document.getElementById('cr-dl');dl.innerHTML='';
+  [...new Set(C.credits().map(c=>c.customer))].forEach(c=>{const o=document.createElement('option');o.value=c;dl.appendChild(o);});
+  refreshEmpDrop();
+  tCr=[];tEx=[];renderTCr();renderTEx();
+  onDateChange();
+}
+
+function refreshEmpDrop(){
+  const s=C.settings(),sel=document.getElementById('exp-emp');if(!sel)return;
+  sel.innerHTML='<option value="">Select...</option>'+(s.employees||[]).map(e=>`<option value="${e.name}">${e.name}${e.role?' ('+e.role+')':''}</option>`).join('');
+}
+
+function onDateChange(){
+  const dateStr=document.getElementById('e-date').value;if(!dateStr)return;
+  const entries=C.entries();
+  if(entries.length>0){
+    const existing=entries.find(e=>e.date===dateStr);
+    const nextAllowed=ADDDAY(entries[0].date);
+    if(existing){
+      const snapTo=nextAllowed<=TODAY()?nextAllowed:TODAY();
+      document.getElementById('e-date').value=snapTo;
+      document.getElementById('e-status').innerHTML=`<span class="pill-warn" style="line-height:1.6;">⚠ Entry for <b>${DS(dateStr)}</b> already exists.<br><span style="font-size:11px;opacity:.8;">To edit, use Settings → Edit Previous Entry.</span></span>`;
+      clearEntry();document.getElementById('e-date').value=snapTo;
+      setTimeout(()=>onDateChange(),0);return;
+    }
+    if(dateStr>nextAllowed){
+      document.getElementById('e-date').value=nextAllowed;
+      document.getElementById('e-status').innerHTML=`<span class="pill-warn" style="line-height:1.6;">⚠ Please enter data for <b>${DS(nextAllowed)}</b> first.<br><span style="font-size:11px;opacity:.8;">Last saved: ${DS(entries[0].date)}.</span></span>`;
+      setTimeout(()=>onDateChange(),0);return;
+    }
+  }
+  const {readings,source,prevDate}=getOpenings(dateStr);
+  ALL_NZ.forEach(id=>{const el=document.getElementById('o-'+id);if(!el)return;const v=readings[id]||0;el.textContent=v>0?fmtV(v):'0.000';el.className=v>0?'vg':'vm';});
+  const st=document.getElementById('e-status');
+  if(source==='prev')st.innerHTML=`<span class="pill-ok">✓ Openings from ${DS(prevDate)} closing</span>`;
+  else st.innerHTML=`<span class="pill-warn">⚠ No previous entry found</span>`;
+  ['ms','hsd','pow'].forEach(f=>NOZZLES[f].forEach(id=>calcNz(id,f)));
+}
+
+function calcNz(id,fuel){
+  const openEl=document.getElementById('o-'+id);
+  const open=parseFloat((openEl?.textContent||'').replace(/,/g,''))||0;
+  const close=parseFloat(document.getElementById('c-'+id)?.value)||0;
+  const vol=(close>0&&close>=open)?Math.max(0,close-open):0;
+  const vEl=document.getElementById('v-'+id);
+  if(vEl){vEl.textContent=vol>0?fmtV(vol)+' L':'—';vEl.className=vol>0?'vg':'vm';}
+  updateFuelTotals(fuel);
+}
+function recalcAll(){['ms','hsd','pow'].forEach(f=>updateFuelTotals(f));}
+function getFuelNet(fuel){
+  let gross=0;const rate=parseFloat(document.getElementById('r-'+fuel)?.value)||0;
+  NOZZLES[fuel].forEach(id=>{const open=parseFloat((document.getElementById('o-'+id)?.textContent||'').replace(/,/g,''))||0;const close=parseFloat(document.getElementById('c-'+id)?.value)||0;gross+=(close>0&&close>=open)?Math.max(0,close-open):0;});
+  const test=parseFloat(document.getElementById('test-'+fuel)?.value)||0;
+  return{net:Math.max(0,gross-test),rate};
+}
+function updateFuelTotals(fuel){
+  const{net,rate}=getFuelNet(fuel);
+  document.getElementById(fuel+'-vol').textContent=fmtV(net)+' L';
+  document.getElementById(fuel+'-amt').textContent=fmt(net*rate);
+  updateGrand();
+}
+function updateGrand(){
+  let gV=0,gA=0;
+  ['ms','hsd','pow'].forEach(f=>{const{net,rate}=getFuelNet(f);gV+=net;gA+=net*rate;});
+  document.getElementById('e-vol-grand').textContent=fmtV(gV)+' L';
+  document.getElementById('e-amt-grand').textContent=fmt(gA);
+  calcDiff();
+}
+function calcDiff(){
+  let rev=0;['ms','hsd','pow'].forEach(f=>{const{net,rate}=getFuelNet(f);rev+=net*rate;});
+  const cr=tCr.reduce((s,c)=>s+c.amount,0);
+  const c1=parseFloat(document.getElementById('cash1')?.value)||0;
+  const c2=parseFloat(document.getElementById('cash2')?.value)||0;
+  const c3=parseFloat(document.getElementById('cash3')?.value)||0;
+  const pt=parseFloat(document.getElementById('paytm')?.value)||0;
+  const bt=parseFloat(document.getElementById('bank-transfer')?.value)||0;
+  const hp=parseFloat(document.getElementById('hp-pay')?.value)||0;
+  const cm=parseFloat(document.getElementById('ccms')?.value)||0;
+  const coll=c1+c2+c3+pt+bt+hp+cm;
+  const collEl=document.getElementById('coll-total');if(collEl)collEl.textContent=fmt(coll);
+  const exp=tEx.reduce((s,e)=>s+e.amount,0);
+  const diff=rev-cr-coll-exp;
+  const el=document.getElementById('diff-val'),box=document.getElementById('diff-box');
+  if(el)el.textContent=fmt(Math.abs(diff));
+  if(box)box.className='diff-box '+(Math.abs(diff)<1?'diff-balanced':diff>0?'diff-over':'diff-under');
+  if(el)el.style.color=Math.abs(diff)<1?'var(--green)':diff>0?'var(--red)':'var(--accent)';
+  const ds=document.getElementById('diff-status');if(ds)ds.textContent=Math.abs(diff)<1?'✓ Balanced':(diff>0?'Cash short':'Over-reported');
+  const bd=document.getElementById('diff-breakdown');if(bd)bd.innerHTML=`Rev <b style="color:var(--green)">${fmt(rev)}</b> − Cr <b style="color:var(--red)">${fmt(cr)}</b> − Coll <b style="color:var(--blue)">${fmt(coll)}</b> − Exp <b style="color:var(--red)">${fmt(exp)}</b> =`;
+  const ctb=document.getElementById('cr-tbar');if(ctb)ctb.style.display=tCr.length?'flex':'none';
+  const ctv=document.getElementById('cr-total');if(ctv)ctv.textContent=fmt(cr);
+}
+function onExpCat(){const v=document.getElementById('exp-cat').value,g=document.getElementById('exp-emp-grp');if(g)g.style.display=(v==='Advance'||v==='Incentive')?'block':'none';}
+function addCredit(){
+  const cust=document.getElementById('cr-cust').value.trim(),fuel=document.getElementById('cr-fuel').value,amt=parseFloat(document.getElementById('cr-amt').value)||0;
+  if(!cust||!amt){toast('Enter customer and amount');return;}
+  tCr.push({customer:cust,fuel,amount:amt});renderTCr();
+  document.getElementById('cr-cust').value='';document.getElementById('cr-amt').value='';calcDiff();
+}
+function renderTCr(){
+  const el=document.getElementById('cr-list');
+  if(!tCr.length){el.innerHTML='';calcDiff();return;}
+  el.innerHTML=tCr.map((c,i)=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);"><div><div style="font-weight:600;font-size:13px;">${c.customer}</div><div style="font-size:11px;color:var(--text3);"><span class="badge b-${c.fuel.toLowerCase()}">${c.fuel}</span></div></div><div style="display:flex;align-items:center;gap:8px;"><span style="font-family:'DM Mono',monospace;color:var(--red);">${fmt(c.amount)}</span><button class="btn btn-danger btn-sm" onclick="rmCr(${i})">✕</button></div></div>`).join('');calcDiff();
+}
+function rmCr(i){tCr.splice(i,1);renderTCr();}
+function addExpense(){
+  const cat=document.getElementById('exp-cat').value;let desc=document.getElementById('exp-desc').value.trim();const amt=parseFloat(document.getElementById('exp-amt').value)||0;
+  if(!cat||!amt){toast('Select category and enter amount');return;}
+  if(cat==='Advance'||cat==='Incentive'){const emp=document.getElementById('exp-emp').value;if(!emp){toast('Select employee');return;}desc=emp+(desc?': '+desc:'');}
+  tEx.push({category:cat,description:desc,amount:amt});renderTEx();
+  document.getElementById('exp-cat').value='';document.getElementById('exp-desc').value='';document.getElementById('exp-amt').value='';
+  document.getElementById('exp-emp-grp').style.display='none';calcDiff();
+}
+function renderTEx(){
+  const el=document.getElementById('exp-list');
+  if(!tEx.length){el.innerHTML='';document.getElementById('exp-tbar').style.display='none';calcDiff();return;}
+  const tot=tEx.reduce((s,e)=>s+e.amount,0);
+  el.innerHTML=tEx.map((e,i)=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);"><div><div style="font-size:11px;color:var(--text2);">${e.category}</div><div style="font-size:12px;color:var(--text3);">${e.description||'—'}</div></div><div style="display:flex;align-items:center;gap:8px;"><span style="font-family:'DM Mono',monospace;color:var(--red);">${fmt(e.amount)}</span><button class="btn btn-danger btn-sm" onclick="rmEx(${i})">✕</button></div></div>`).join('');
+  document.getElementById('exp-tbar').style.display='flex';document.getElementById('exp-total').textContent=fmt(tot);calcDiff();
+}
+function rmEx(i){tEx.splice(i,1);renderTEx();}
+async function saveEntry(){
+  const date=document.getElementById('e-date').value;if(!date){toast('Select a date');return;}
+  const btn=document.getElementById('save-btn');btn.innerHTML='<span class="spinner"></span> Saving…';btn.disabled=true;
+  try{
+    const openings=getOpenings(date),nozzles={};let msV=0,hsdV=0,powV=0,msA=0,hsdA=0,powA=0;
+    const testMs=parseFloat(document.getElementById('test-ms')?.value)||0,testHsd=parseFloat(document.getElementById('test-hsd')?.value)||0,testPow=parseFloat(document.getElementById('test-pow')?.value)||0;
+    const rates={ms:parseFloat(document.getElementById('r-ms').value)||0,hsd:parseFloat(document.getElementById('r-hsd').value)||0,pow:parseFloat(document.getElementById('r-pow').value)||0};
+    ['ms','hsd','pow'].forEach(fuel=>{
+      let gross=0;const rate=rates[fuel];
+      NOZZLES[fuel].forEach(id=>{const open=openings.readings[id]||0,close=parseFloat(document.getElementById('c-'+id)?.value)||0,vol=(close>0&&close>=open)?Math.max(0,close-open):0;nozzles[id]={open,close,volume:vol,rate,amount:vol*rate};gross+=vol;});
+      const test=fuel==='ms'?testMs:fuel==='hsd'?testHsd:testPow,net=Math.max(0,gross-test),amt=net*rate;
+      if(fuel==='ms'){msV=net;msA=amt;}if(fuel==='hsd'){hsdV=net;hsdA=amt;}if(fuel==='pow'){powV=net;powA=amt;}
+    });
+    const cash1=parseFloat(document.getElementById('cash1').value)||0,cash2=parseFloat(document.getElementById('cash2').value)||0,cash3=parseFloat(document.getElementById('cash3').value)||0;
+    const paytm=parseFloat(document.getElementById('paytm').value)||0,bankTransfer=parseFloat(document.getElementById('bank-transfer').value)||0;
+    const hpPay=parseFloat(document.getElementById('hp-pay').value)||0,ccms=parseFloat(document.getElementById('ccms').value)||0;
+    const creditGiven=tCr.reduce((s,c)=>s+c.amount,0);
+    await sb('daily_entries','POST',{entry_date:date,remarks:document.getElementById('e-remarks').value,nozzles,testing_ms:testMs,testing_hsd:testHsd,testing_pow:testPow,ms_vol:msV,hsd_vol:hsdV,pow_vol:powV,ms_amt:msA,hsd_amt:hsdA,pow_amt:powA,ms_rate:rates.ms,hsd_rate:rates.hsd,pow_rate:rates.pow,cash1,cash2,cash3,paytm,bank_transfer:bankTransfer,hp_pay:hpPay,ccms,credit_given:creditGiven,updated_at:new Date().toISOString()},'?on_conflict=entry_date');
+    await sb('expenses','DELETE',null,`?entry_date=eq.${date}`);
+    await sb('credit_sales','DELETE',null,`?entry_date=eq.${date}`);
+    if(tEx.length)await sb('expenses','POST',tEx.map(e=>({entry_date:date,category:e.category,description:e.description,amount:e.amount})));
+    if(tCr.length)await sb('credit_sales','POST',tCr.map(c=>({entry_date:date,customer:c.customer,fuel:c.fuel,amount:c.amount})));
+    await sb('employee_advances','DELETE',null,`?advance_date=eq.${date}`);
+    const advRows=tEx.filter(e=>e.category==='Advance'||e.category==='Incentive').map(e=>({advance_date:date,employee_name:e.description.split(':')[0].trim(),amount:e.amount,notes:e.description}));
+    if(advRows.length)await sb('employee_advances','POST',advRows);
+    toast('✅ Entry saved!');clearEntry();
+    await syncNow();
+    initEntry();
+  }catch(err){console.error(err);toast('⚠ Save failed: '+err.message);}
+  finally{btn.innerHTML='💾 Save Entry';btn.disabled=false;}
+}
+function clearEntry(){
+  ALL_NZ.forEach(id=>{const c=document.getElementById('c-'+id);if(c)c.value='';const v=document.getElementById('v-'+id);if(v){v.textContent='—';v.className='vm';}});
+  ['test-ms','test-hsd','test-pow','e-remarks','cash1','cash2','cash3','paytm','bank-transfer','hp-pay','ccms'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  tCr=[];tEx=[];renderTCr();renderTEx();
+  ['ms','hsd','pow'].forEach(f=>{document.getElementById(f+'-vol').textContent='0.000 L';document.getElementById(f+'-amt').textContent='₹0';});
+  document.getElementById('e-vol-grand').textContent='0.000 L';document.getElementById('e-amt-grand').textContent='₹0';
+  document.getElementById('coll-total').textContent='₹0';document.getElementById('diff-val').textContent='₹0';
+}
+
+document.addEventListener('DOMContentLoaded',()=>{ buildShell('Daily Entry','entry'); initEntry(); });
+</script>
+</body></html>

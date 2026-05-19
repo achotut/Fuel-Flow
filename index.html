@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="theme-color" content="#0b0d12">
+<title>FuelFlow — Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app">
+  <div class="top-bar" id="top-bar"></div>
+  <div class="scroll-area">
+    <div class="page-content">
+      <div class="page-hdr">
+        <div class="page-title">Dashboard</div>
+        <div class="page-sub" id="dash-date"></div>
+      </div>
+      <div id="dash-bar" style="margin-bottom:10px;"></div>
+      <div class="cards-grid">
+        <div class="card ca"><div class="card-lbl">Last Entry</div><div class="card-val" id="dash-rev">₹0</div><div class="card-sub" id="dash-rev-sub">Revenue</div></div>
+        <div class="card cg"><div class="card-lbl">Collected</div><div class="card-val" id="dash-cash">₹0</div><div class="card-sub">Cash + Online</div></div>
+        <div class="card cr"><div class="card-lbl">Credit Due</div><div class="card-val" id="dash-cred">₹0</div><div class="card-sub">Outstanding</div></div>
+        <div class="card cb"><div class="card-lbl">Expenses</div><div class="card-val" id="dash-exp">₹0</div><div class="card-sub" id="dash-exp-sub">Last entry</div></div>
+      </div>
+      <div class="sbox">
+        <div class="sbox-title"><div class="pill" style="background:var(--accent)"></div>Fuel Sales</div>
+        <div id="dash-fuel-bars"><div class="empty"><p>No sales data</p></div></div>
+      </div>
+      <div class="sbox">
+        <div class="sbox-title"><div class="pill" style="background:var(--green)"></div>Stock Status</div>
+        <div id="dash-stock"><div class="empty"><p>No stock data</p></div></div>
+      </div>
+      <div class="sbox">
+        <div class="sbox-title"><div class="pill" style="background:var(--blue)"></div>Recent 7 Days</div>
+        <div class="tbl-wrap"><table class="gt">
+          <thead><tr><th>Date</th><th>Revenue</th><th>Expenses</th><th>Net</th></tr></thead>
+          <tbody id="dash-recent"><tr><td colspan="4"><div class="empty"><p>No records</p></div></td></tr></tbody>
+        </table></div>
+      </div>
+    </div>
+  </div>
+  <nav class="bottom-nav" id="bottom-nav"></nav>
+  <div class="overlay" id="more-overlay" onclick="closeMore()"></div>
+  <div class="more-menu" id="more-menu"></div>
+  <div id="toast"></div>
+  <!-- PIN Modal -->
+  <div id="pin-overlay"><div style="background:var(--surf);border:1px solid var(--border);border-radius:var(--r);padding:28px 24px;width:300px;max-width:90vw;text-align:center;">
+    <div style="font-size:28px;margin-bottom:8px;">🔒</div>
+    <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:18px;margin-bottom:4px;">Settings Access</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:20px;">Enter 4-digit PIN</div>
+    <div id="pin-dots" style="display:flex;justify-content:center;gap:12px;margin-bottom:20px;"><div class="pin-dot" id="pd0"></div><div class="pin-dot" id="pd1"></div><div class="pin-dot" id="pd2"></div><div class="pin-dot" id="pd3"></div></div>
+    <div id="pin-error" style="font-size:12px;color:var(--red);height:16px;margin-bottom:10px;"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+      <button class="pin-key" onclick="pinKey('1')">1</button><button class="pin-key" onclick="pinKey('2')">2</button><button class="pin-key" onclick="pinKey('3')">3</button>
+      <button class="pin-key" onclick="pinKey('4')">4</button><button class="pin-key" onclick="pinKey('5')">5</button><button class="pin-key" onclick="pinKey('6')">6</button>
+      <button class="pin-key" onclick="pinKey('7')">7</button><button class="pin-key" onclick="pinKey('8')">8</button><button class="pin-key" onclick="pinKey('9')">9</button>
+      <button class="pin-key pin-key-cancel" onclick="closePinModal()">✕</button><button class="pin-key" onclick="pinKey('0')">0</button><button class="pin-key pin-key-del" onclick="pinDel()">⌫</button>
+    </div>
+  </div></div>
+</div>
+<script src="js/app.js"></script>
+<script>
+function onSyncComplete(){ renderDash(); }
+
+function renderDash(){
+  buildShell('Dashboard','index');
+  document.getElementById('dash-date').textContent='Today: '+new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'});
+  const entries=C.entries(),credits=C.credits(),recs=C.recoveries();
+  const le=entries.length?entries[0]:null;
+  const leDate=le?le.date:null;
+  const bar=document.getElementById('dash-bar');
+  if(le){
+    const isToday=leDate===TODAY(),isYest=leDate===YEST();
+    const label=isToday?'Today':isYest?'Yesterday':DS(leDate);
+    bar.innerHTML=`<span class="pill-info">📊 Showing: ${label} (${DS(leDate)})</span>`;
+  } else bar.innerHTML=`<span class="pill-warn">No entries yet. Go to Daily Entry to start.</span>`;
+
+  let rev=0,cash=0,exp=0;
+  if(le){
+    rev=le.msA+le.hsdA+le.powA;
+    cash=(le.cash1||0)+(le.cash2||0)+(le.cash3||0)+(le.paytm||0)+(le.bankTransfer||0)+(le.hpPay||0)+(le.ccms||0);
+    exp=le.expenses.reduce((s,e)=>s+e.amount,0);
+  }
+  const totC=credits.reduce((s,c)=>s+c.amount,0),totR=recs.reduce((s,r)=>s+r.amount,0);
+  document.getElementById('dash-rev').textContent=fmt(rev);
+  document.getElementById('dash-cash').textContent=fmt(cash);
+  document.getElementById('dash-cred').textContent=fmt(Math.max(0,totC-totR));
+  document.getElementById('dash-exp').textContent=fmt(exp);
+  const dl=leDate?DS(leDate):'—';
+  document.getElementById('dash-rev-sub').textContent=dl;
+  document.getElementById('dash-exp-sub').textContent=dl;
+
+  const fEl=document.getElementById('dash-fuel-bars');
+  if(le&&(le.msV||le.hsdV||le.powV)){
+    const fuels=[{n:'MS',c:'var(--c-ms)',v:le.msV,a:le.msA},{n:'HSD',c:'var(--c-hsd)',v:le.hsdV,a:le.hsdA},{n:'Power',c:'var(--c-pow)',v:le.powV,a:le.powA}];
+    const mx=Math.max(...fuels.map(f=>f.v),1);
+    fEl.innerHTML=fuels.map(f=>`<div class="fbar"><div class="fbar-lbl"><span style="color:${f.c};font-weight:600;">${f.n}</span><span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text2);">${fmtV(f.v)} L · ${fmt(f.a)}</span></div><div class="fbar-track"><div class="fbar-fill" style="width:${(f.v/mx*100).toFixed(1)}%;background:${f.c};"></div></div></div>`).join('');
+  } else fEl.innerHTML='<div class="empty"><p>No fuel data</p></div>';
+
+  const stkH=C.stkHist(),latest=stkH.length?stkH[0]:null,s=C.settings(),rc=entries.slice(0,7);
+  const avg={ms:rc.length?rc.reduce((a,e)=>a+e.msV,0)/rc.length:0,hsd:rc.length?rc.reduce((a,e)=>a+e.hsdV,0)/rc.length:0,pow:rc.length?rc.reduce((a,e)=>a+e.powV,0)/rc.length:0};
+  const sEl=document.getElementById('dash-stock');
+  if(latest){
+    const sf=[{n:'MS',k:'ms',c:'var(--c-ms)',cap:s.msCap||20000},{n:'HSD',k:'hsd',c:'var(--c-hsd)',cap:s.hsdCap||20000},{n:'Power',k:'pow',c:'var(--c-pow)',cap:s.powCap||5000}];
+    sEl.innerHTML=sf.map(f=>{const vol=latest[f.k]||0,pct=Math.min(100,vol/f.cap*100),d=avg[f.k]>0?'~'+(vol/avg[f.k]).toFixed(0)+' days':'—',w=pct<20?'color:#ef4444':pct<40?'color:#f5a623':'';return `<div class="fbar"><div class="fbar-lbl"><span style="color:${f.c};font-weight:600;">${f.n}</span><span style="${w};font-family:'DM Mono',monospace;font-size:11px;">${fmtV(vol)} L · ${d}</span></div><div class="fbar-track"><div class="fbar-fill" style="width:${pct.toFixed(1)}%;background:${f.c};opacity:.75;"></div></div></div>`;}).join('');
+  } else sEl.innerHTML='<div class="empty"><p>No stock data yet</p></div>';
+
+  const tb=document.getElementById('dash-recent'),l7=entries.slice(0,7);
+  if(!l7.length){tb.innerHTML='<tr><td colspan="4"><div class="empty"><p>No records</p></div></td></tr>';return;}
+  tb.innerHTML=l7.map(e=>{const rev=e.msA+e.hsdA+e.powA,exp=e.expenses.reduce((s,x)=>s+x.amount,0),isLatest=e.date===leDate;return `<tr style="${isLatest?'background:rgba(245,166,35,.05);':''}"><td style="white-space:nowrap;">${DS(e.date)}${isLatest?' <span class="badge b-hsd" style="font-size:9px;">latest</span>':''}</td><td style="color:var(--accent);font-weight:600;">${fmt(rev)}</td><td style="color:var(--red);">${fmt(exp)}</td><td style="color:${rev-exp>=0?'var(--green)':'var(--red)'};font-weight:600;">${fmt(rev-exp)}</td></tr>`;}).join('');
+}
+
+document.addEventListener('DOMContentLoaded',()=>{ buildShell('Dashboard','index'); renderDash(); });
+</script>
+</body></html>
