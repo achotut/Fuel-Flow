@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="theme-color" content="#0b0d12">
+<title>FuelFlow — Expenses</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app">
+  <div class="top-bar" id="top-bar"></div>
+  <div class="scroll-area"><div class="page-content">
+    <div class="page-hdr"><div class="page-title">Expenses</div><div class="page-sub">All operational expenses</div></div>
+    <div class="dfilter">
+      <span class="dchip active" onclick="fExp('month',this)">This Month</span>
+      <span class="dchip" onclick="fExp('all',this)">All Time</span>
+    </div>
+    <div class="cards-grid">
+      <div class="card cr"><div class="card-lbl">Total</div><div class="card-val" id="exp-total-card">₹0</div></div>
+      <div class="card cp"><div class="card-lbl">Advances</div><div class="card-val" id="exp-adv-card">₹0</div></div>
+    </div>
+    <div class="sbox"><div class="tbl-wrap"><table class="gt">
+      <thead><tr><th>Date</th><th>Category</th><th>Description</th><th>Amount</th></tr></thead>
+      <tbody id="exp-body"><tr><td colspan="4"><div class="empty"><p>No expenses</p></div></td></tr></tbody>
+    </table></div></div>
+  </div></div>
+  <nav class="bottom-nav" id="bottom-nav"></nav>
+  <div class="overlay" id="more-overlay" onclick="closeMore()"></div>
+  <div class="more-menu" id="more-menu"></div>
+  <div id="toast"></div>
+  <div id="pin-overlay"><div style="background:var(--surf);border:1px solid var(--border);border-radius:var(--r);padding:28px 24px;width:300px;max-width:90vw;text-align:center;"><div style="font-size:28px;margin-bottom:8px;">🔒</div><div style="font-family:'Syne',sans-serif;font-weight:800;font-size:18px;margin-bottom:4px;">Settings Access</div><div style="font-size:12px;color:var(--text2);margin-bottom:20px;">Enter 4-digit PIN</div><div id="pin-dots" style="display:flex;justify-content:center;gap:12px;margin-bottom:20px;"><div class="pin-dot" id="pd0"></div><div class="pin-dot" id="pd1"></div><div class="pin-dot" id="pd2"></div><div class="pin-dot" id="pd3"></div></div><div id="pin-error" style="font-size:12px;color:var(--red);height:16px;margin-bottom:10px;"></div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;"><button class="pin-key" onclick="pinKey('1')">1</button><button class="pin-key" onclick="pinKey('2')">2</button><button class="pin-key" onclick="pinKey('3')">3</button><button class="pin-key" onclick="pinKey('4')">4</button><button class="pin-key" onclick="pinKey('5')">5</button><button class="pin-key" onclick="pinKey('6')">6</button><button class="pin-key" onclick="pinKey('7')">7</button><button class="pin-key" onclick="pinKey('8')">8</button><button class="pin-key" onclick="pinKey('9')">9</button><button class="pin-key pin-key-cancel" onclick="closePinModal()">✕</button><button class="pin-key" onclick="pinKey('0')">0</button><button class="pin-key pin-key-del" onclick="pinDel()">⌫</button></div></div></div>
+</div>
+<script src="js/app.js"></script>
+<script>
+function onSyncComplete(){ fExp('month',document.querySelector('.dchip.active')); }
+function fExp(p,el){
+  document.querySelectorAll('.dchip').forEach(c=>c.classList.remove('active'));if(el)el.classList.add('active');
+  const now=TODAY();let f='';if(p==='month')f=now.slice(0,7)+'-01';
+  const rows=C.expenses().filter(e=>inR(e.date,f,now));
+  const tot=rows.reduce((s,e)=>s+e.amount,0),adv=rows.filter(e=>e.category==='Advance'||e.category==='Incentive').reduce((s,e)=>s+e.amount,0);
+  document.getElementById('exp-total-card').textContent=fmt(tot);
+  document.getElementById('exp-adv-card').textContent=fmt(adv);
+  const tb=document.getElementById('exp-body');
+  if(!rows.length){tb.innerHTML='<tr><td colspan="4"><div class="empty"><p>No expenses</p></div></td></tr>';return;}
+  tb.innerHTML=rows.map(e=>`<tr><td style="white-space:nowrap;">${DS(e.date)}</td><td style="font-size:11px;">${e.category}</td><td style="font-size:12px;color:var(--text2);">${e.description||'—'}</td><td style="color:var(--red);font-weight:600;">${fmt(e.amount)}</td></tr>`).join('');
+}
+document.addEventListener('DOMContentLoaded',()=>{ buildShell('Expenses','more'); fExp('month',null); });
+</script>
+</body></html>

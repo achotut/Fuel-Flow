@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="theme-color" content="#0b0d12">
+<title>FuelFlow — Stock</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app">
+  <div class="top-bar" id="top-bar"></div>
+  <div class="scroll-area"><div class="page-content">
+    <div class="page-hdr"><div class="page-title">Stock &amp; Tanker</div><div class="page-sub">Dip measurements and tanker history</div></div>
+    <div class="cards-grid">
+      <div class="card cb"><div class="card-lbl">MS Petrol</div><div class="card-val" id="stk-ms">0 L</div><div class="card-sub" id="stk-ms-d">—</div></div>
+      <div class="card ca"><div class="card-lbl">HSD Diesel</div><div class="card-val" id="stk-hsd">0 L</div><div class="card-sub" id="stk-hsd-d">—</div></div>
+      <div class="card cp"><div class="card-lbl">Power</div><div class="card-val" id="stk-pow">0 L</div><div class="card-sub" id="stk-pow-d">—</div></div>
+      <div class="card"><div class="card-lbl">Last Dip</div><div class="card-val" style="font-size:14px;padding-top:4px;" id="stk-last">—</div></div>
+    </div>
+    <div class="tabs">
+      <div class="tab active" onclick="stkTab('update',this)">Update Stock</div>
+      <div class="tab" onclick="stkTab('history',this)">History</div>
+      <div class="tab" onclick="stkTab('tanker',this)">Tankers</div>
+    </div>
+    <div id="stkt-update"><div class="sbox">
+      <div class="sbox-title">Record Dip Measurement</div>
+      <div class="fg"><label>Date</label><input type="date" id="stk-date"></div>
+      <div class="frow3">
+        <div class="fg"><label style="color:var(--c-ms);">MS (L)</label><input type="number" inputmode="decimal" id="upd-ms" step="0.001"></div>
+        <div class="fg"><label style="color:var(--c-hsd);">HSD (L)</label><input type="number" inputmode="decimal" id="upd-hsd" step="0.001"></div>
+        <div class="fg"><label style="color:var(--c-pow);">Power (L)</label><input type="number" inputmode="decimal" id="upd-pow" step="0.001"></div>
+      </div>
+      <div class="fg"><label>Notes</label><input type="text" id="upd-notes" placeholder="Optional..."></div>
+      <button class="btn btn-primary" onclick="saveStock()">Save Measurement</button>
+    </div></div>
+    <div id="stkt-history" style="display:none;"><div class="sbox"><div class="tbl-wrap"><table class="gt">
+      <thead><tr><th>Date</th><th>MS (L)</th><th>HSD (L)</th><th>Power (L)</th><th>Notes</th></tr></thead>
+      <tbody id="stk-hist"><tr><td colspan="5"><div class="empty"><p>No history</p></div></td></tr></tbody>
+    </table></div></div></div>
+    <div id="stkt-tanker" style="display:none;"><div class="sbox"><div class="tbl-wrap"><table class="gt">
+      <thead><tr><th>Date</th><th>Fuel</th><th>Volume (L)</th><th>Tanker No.</th></tr></thead>
+      <tbody id="tank-hist"><tr><td colspan="4"><div class="empty"><p>No records</p></div></td></tr></tbody>
+    </table></div></div></div>
+  </div></div>
+  <nav class="bottom-nav" id="bottom-nav"></nav>
+  <div class="overlay" id="more-overlay" onclick="closeMore()"></div>
+  <div class="more-menu" id="more-menu"></div>
+  <div id="toast"></div>
+  <div id="pin-overlay"><div style="background:var(--surf);border:1px solid var(--border);border-radius:var(--r);padding:28px 24px;width:300px;max-width:90vw;text-align:center;"><div style="font-size:28px;margin-bottom:8px;">🔒</div><div style="font-family:'Syne',sans-serif;font-weight:800;font-size:18px;margin-bottom:4px;">Settings Access</div><div style="font-size:12px;color:var(--text2);margin-bottom:20px;">Enter 4-digit PIN</div><div id="pin-dots" style="display:flex;justify-content:center;gap:12px;margin-bottom:20px;"><div class="pin-dot" id="pd0"></div><div class="pin-dot" id="pd1"></div><div class="pin-dot" id="pd2"></div><div class="pin-dot" id="pd3"></div></div><div id="pin-error" style="font-size:12px;color:var(--red);height:16px;margin-bottom:10px;"></div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;"><button class="pin-key" onclick="pinKey('1')">1</button><button class="pin-key" onclick="pinKey('2')">2</button><button class="pin-key" onclick="pinKey('3')">3</button><button class="pin-key" onclick="pinKey('4')">4</button><button class="pin-key" onclick="pinKey('5')">5</button><button class="pin-key" onclick="pinKey('6')">6</button><button class="pin-key" onclick="pinKey('7')">7</button><button class="pin-key" onclick="pinKey('8')">8</button><button class="pin-key" onclick="pinKey('9')">9</button><button class="pin-key pin-key-cancel" onclick="closePinModal()">✕</button><button class="pin-key" onclick="pinKey('0')">0</button><button class="pin-key pin-key-del" onclick="pinDel()">⌫</button></div></div></div>
+</div>
+<script src="js/app.js"></script>
+<script>
+function onSyncComplete(){ renderStock(); }
+function stkTab(tab,el){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');
+  ['update','history','tanker'].forEach(t=>document.getElementById('stkt-'+t).style.display=t===tab?'block':'none');
+}
+function renderStock(){
+  const sdEl=document.getElementById('stk-date');if(sdEl&&!sdEl.value)sdEl.value=TODAY();
+  const hist=C.stkHist(),latest=hist.length?hist[0]:null,s=C.settings(),entries=C.entries().slice(0,7);
+  const avg={ms:entries.length?entries.reduce((s,e)=>s+e.msV,0)/entries.length:0,hsd:entries.length?entries.reduce((s,e)=>s+e.hsdV,0)/entries.length:0,pow:entries.length?entries.reduce((s,e)=>s+e.powV,0)/entries.length:0};
+  ['ms','hsd','pow'].forEach(k=>{const vol=latest?latest[k]||0:0;document.getElementById('stk-'+k).textContent=fmtV(vol)+' L';document.getElementById('stk-'+k+'-d').textContent=avg[k]>0?'~'+(vol/avg[k]).toFixed(0)+' days':'—';});
+  document.getElementById('stk-last').textContent=latest?DS(latest.date):'No data';
+  const hb=document.getElementById('stk-hist');
+  if(!hist.length)hb.innerHTML='<tr><td colspan="5"><div class="empty"><p>No history</p></div></td></tr>';
+  else hb.innerHTML=hist.map(h=>`<tr><td style="white-space:nowrap;">${DS(h.date)}</td><td style="color:var(--c-ms);">${fmtV(h.ms||0)}</td><td style="color:var(--c-hsd);">${fmtV(h.hsd||0)}</td><td style="color:var(--c-pow);">${fmtV(h.pow||0)}</td><td style="color:var(--text3);font-size:11px;">${h.notes||'—'}</td></tr>`).join('');
+  const allTank=C.tankers().sort((a,b)=>b.date.localeCompare(a.date));
+  const tb=document.getElementById('tank-hist');
+  if(!allTank.length)tb.innerHTML='<tr><td colspan="4"><div class="empty"><p>No records</p></div></td></tr>';
+  else tb.innerHTML=allTank.map(t=>`<tr><td style="white-space:nowrap;">${DS(t.date)}</td><td><span class="badge b-${t.fuel.toLowerCase()}">${t.fuel}</span></td><td style="font-family:'DM Mono',monospace;">${fmtV(t.volume)} L</td><td>${t.tankerNo||'—'}</td></tr>`).join('');
+}
+async function saveStock(){
+  const date=document.getElementById('stk-date').value||TODAY(),ms=parseFloat(document.getElementById('upd-ms').value),hsd=parseFloat(document.getElementById('upd-hsd').value),pow=parseFloat(document.getElementById('upd-pow').value),notes=document.getElementById('upd-notes').value.trim();
+  if(isNaN(ms)&&isNaN(hsd)&&isNaN(pow)){toast('Enter at least one stock value');return;}
+  try{await sb('stock_history','POST',{meas_date:date,ms_vol:isNaN(ms)?null:ms,hsd_vol:isNaN(hsd)?null:hsd,pow_vol:isNaN(pow)?null:pow,notes},'?on_conflict=meas_date');toast('✅ Stock saved!');['upd-ms','upd-hsd','upd-pow','upd-notes'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});await syncNow();renderStock();}
+  catch(e){toast('⚠ Save failed');console.error(e);}
+}
+document.addEventListener('DOMContentLoaded',()=>{ buildShell('Stock & Tanker','more'); renderStock(); });
+</script>
+</body></html>
